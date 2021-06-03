@@ -1,0 +1,180 @@
+<script>
+    function openModal(id) {
+        $("#"+id).modal("show");
+    }
+    function getBookInfo() {
+        $.ajax({
+            url:"setting/loadBookInfo.do",
+            method:"post",
+            dataType:"json",
+            data:{
+                "userId":"${user.usercode}"
+            },
+            success:function (data) {
+                var html="<tr>\n" +
+                    "<td>电影名</td>\n" +
+                    "<td>放映厅</td>\n" +
+                    "<td>放映时间</td>\n" +
+                    "<td>座位</td>\n" +
+                    "<td>套餐</td>\n" +
+                    "<td>价格</td>\n" +
+                    "<td>购买时间</td>\n" +
+                    "</tr>";
+                $.each(data,function (i,n) {
+                        html+='<tr>'
+                        html+='<td>'+n.movieName+'</td>'
+                        html+='<td>'+n.hallName+'</td>'
+                        html+='<td>'+n.showTime+' '+n.showPeriod+'</td>'
+                        html+='<td>'+n.rows+'行'+n.cols+'列'+'</td>'
+                        if(n.setInclude!=null)
+                            html+='<td>'+n.setInclude+'</td>'
+                        else
+                            html+='<td>未选择套餐</td>'
+                        html+='<td>'+n.cost+'</td>'
+                        html+='<td>'+n.dealTime+'</td>'
+                        html+='</tr>'
+                })
+                $("#bookList").html(html);
+                $("#userBook-modal").modal("show");
+            }
+        })
+    }
+    function getMyComments() {
+        $.ajax({
+            url:"setting/loadMyComment.do",
+            method:"post",
+            dataType:"json",
+            data:{
+                "userId":"${user.usercode}"
+            },
+            success:function (data) {
+                var html="";
+                $.each(data,function (i,n) {
+                   html+=' <div class="page-header">';
+                   html+='<small>电影：'+n.movieName+' - 评分：'+n.grade+' - 评论时间：'+n.createTime+'</small>';
+                   html+='<br>'+n.comment+'';
+                   html+='</div>';
+                })
+                $("#Comments").html(html);
+                $("#userComment-modal").modal("show");
+            }
+        })
+
+    }
+    function charge(data) {
+        var money = parseInt(data);
+        var balanceStr=$("#userBalance").html();
+        var balance = parseInt(balanceStr);
+        var postBalance = balance + money;
+        $.ajax({
+            url:"setting/charge.do",
+            method:"post",
+            dataType:"text",
+            data:{
+                "userId":"${user.usercode}",
+                "postBalance":postBalance
+            },
+            success:function (data2) {
+                if(data2=="true"){
+                    alert("充值成功！")
+                    loadBalance();
+                }else {
+                    alert("充值失败，未知原因")
+                }
+            }
+        })
+    }
+    function loadBalance() {
+        $.ajax({
+            url:"setting/loadBalance.do",
+            method:"get",
+            dataType:"text",
+            data:{
+                "userId":"${user.usercode}"
+            },
+            success:function (data) {
+                $("#userBalance").html(data);
+            }
+        })
+    }
+</script>
+<div id="user-data" style="position: absolute;right: 0px;top:0px;">
+    <ul>
+        <li id="menu">
+            当前用户：${user.name}
+            <ul id="submenu">
+                <li><a onclick="openModal('userInfo-modal')">我的资料</a></li>
+                <li><a onclick="getBookInfo()">我的订票</a></li>
+                <li><a onclick="getMyComments()">我的评论</a></li>
+                <li><a href="#">退出登陆</a></li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<!--个人信息的模态窗口-->
+<div class="modal fade" id="userInfo-modal" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 40%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title">个人信息</h4>
+            </div>
+            <div class="modal-body">
+                <h3>账号：<b>${user.usercode}</b></h3>
+                <h3>用户名：${user.name}</h3>
+                <h3>账户余额：<font color="red" id="userBalance"></font> 元</h3>
+                <br>
+                <div id="charge">
+                    <h4>账户充值</h4>
+                    <button class="btn" onclick="charge(50)">+50</button>
+                    <button class="btn" onclick="charge(100)">+100</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--订票记录的模态窗口-->
+<div class="modal fade" id="userBook-modal" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 80%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title" >我的订票</h4>
+            </div>
+            <div class="modal-body">
+                <table class="table" id="bookList">
+                </table>
+                <h4>请及时前往使用！</h4>
+            </div>
+            <div class="modal-footer">
+                <button data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--评论的模态窗口-->
+<div class="modal fade" id="userComment-modal" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 40%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title" >我的评论</h4>
+            </div>
+            <div class="modal-body">
+                <div id="Comments"></div>
+            </div>
+            <div class="modal-footer">
+                <button data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>

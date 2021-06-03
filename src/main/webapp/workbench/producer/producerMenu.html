@@ -1,0 +1,211 @@
+<script>
+    function uploadMovie() {
+        $("#addMovie-modal").modal("show");
+    }
+    /*提交电影上架的请求*/
+    function save() {
+        var name=$("#movieName").val();
+        var showTime=$("#showTime").val();
+        var ticketPrice=$("#ticketPrice").val();
+        var movieType=$("#movieType").val();
+        var introduce=$("#introduce").val();
+        if(name==""||showTime==""||ticketPrice=="")
+            $("#myMovie-msg").html("带*为必填项")
+        else{
+            $.ajax({
+                url:"producer/addMovie.do",
+                dataType:"text",
+                method:"post",
+                data:{
+                    "name":name,
+                    "showTime":showTime,
+                    "ticketPrice":ticketPrice,
+                    "movieType":movieType,
+                    "introduce":introduce
+                },
+                success:function (data) {
+                    if(data=="true"){
+                        alert("电影上架成功！")
+                        $("#addMovie-modal").modal("hide");
+                        $("#addMovieForm")[0].reset();
+                        loadMovies();
+                    }else {
+                        alert("上架失败，未知原因")
+                    }
+                }
+            })
+        }
+    }
+    /*加载自己上架电影的函数*/
+    function loadMyMovie() {
+        var name=$("#my-movieName").val();
+        var showTime=$("#my-showTime").val();
+        var movieType=$("#my-movieType").val();
+        $.ajax({
+            url:"producer/myMovie.do",
+            method:"post",
+            dataType:"json",
+            data:{
+                "producer":"${user.usercode}",
+                "name":name,
+                "showTime":showTime,
+                "movieType":movieType
+            },
+            success:function (data) {
+                var html="<tr>\n" +
+                    "<td>电影名</td>\n" +
+                    "<td>上映日期</td>\n" +
+                    "<td>类型</td>\n" +
+                    "</tr>";
+                $.each(data,function (i,n) {
+                   html+='<tr>';
+                   html+='<td><a href="producer/editDetail.do?id='+n.id+'">'+n.name+'</a></td>';
+                   html+='<td>'+n.showTime+'</td>';
+                   html+='<td>'+n.movieType+'</td>';
+                   html+='</tr>';
+                })
+                $("#myMovieList").html(html);
+            }
+        })
+        $("#myMovie-modal").modal("show");
+    }
+    /*上架套餐的函数*/
+    function uploadTicketSet() {
+        $("#addSet-modal").modal("show");
+    }
+    /*保存上架套餐的函数*/
+    function saveSet() {
+        var setInclude=$("#setInclude").val();
+        var setPrice=$("#setPrice").val();
+        $.ajax({
+            url:"producer/addSet.do",
+            method:"post",
+            data:{
+                "setInclude":setInclude,
+                "price":setPrice,
+                "ownerId":"${user.usercode}"
+            },
+            dataType:"text",
+            success:function (data) {
+                if(data=="true"){
+                    alert("添加成功")
+                    $("#addSet-modal").modal("hide")
+                }else {
+                    alert("添加失败，未知原因")
+                }
+            }
+        })
+    }
+</script>
+<!--商家信息菜单-->
+<div id="user-data" style="position: absolute;right: 0px;top:0px;">
+    <ul>
+        <li id="menu">
+            当前用户：${user.name}
+            <ul id="submenu">
+                <li><a onclick="loadMyMovie()">我的上架</a></li>
+                <li><a onclick="uploadMovie()">上架电影</a></li>
+                <li><a onclick="uploadTicketSet()">上架套餐</a></li>
+                <li><a href="producer/checkProfit.do?id=${user.usercode}">查看营收</a></li>
+                <li><a href="#">退出登陆</a></li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<!--上架电影的模态窗口-->
+<div class="modal fade" id="addMovie-modal" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 40%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title">电影上架</h4>
+            </div>
+            <div class="modal-body">
+                <form id="addMovieForm">
+                <table>
+                    <tr>
+                        <td>电影名称：</td>
+                        <td><input type="text" id="movieName"><font color="red">*</font></td>
+                    </tr>
+                    <tr>
+                        <td>上映日期：<br></td>
+                        <td><input type="date" id="showTime"><font color="red">*</font></td>
+                    </tr>
+                    <tr>
+                        <td>票价:</td>
+                        <td><input type="text" id="ticketPrice"><font color="red">*</font></td>
+                    </tr>
+                    <tr>
+                        <td>电影类型:</td>
+                        <td><input type="text" id="movieType"></td>
+                    </tr>
+                    <tr>
+                        <td>简介:</td>
+                        <td><textarea id="introduce"></textarea></td>
+                    </tr>
+                </table>
+                    <font color="red" id="myMovie-msg"></font>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button id="saveBtn" onclick="save()">提交</button>
+                <button data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--查看自己上架的电影的模态窗口-->
+<div class="modal fade" id="myMovie-modal" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 40%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title">已上架的电影</h4>
+            </div>
+            <div class="modal-body">
+                条件搜索<br>
+                电影名<input type="text" id="my-movieName">
+                上映日期<input type="text" id="my-showTime"><br>
+                类型<input type="text" id="my-movieType"> <button class="btn" onclick="loadMyMovie()">搜索</button>
+                <table style="width: 80%" id="myMovieList">
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--上架套餐的模态窗口-->
+<div class="modal fade" id="addSet-modal" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 40%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title">上架套餐</h4>
+            </div>
+            <div class="modal-body">
+                <table>
+                    <tr>
+                        <td>商品名：</td>
+                        <td><input type="text" id="setInclude"></td>
+                    </tr>
+                    <tr>
+                        <td>价格：</td>
+                        <td><input type="text" id="setPrice"></td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button id="saveSetBtn" onclick="saveSet()">提交</button>
+                <button data-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>

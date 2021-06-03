@@ -1,0 +1,343 @@
+<script>
+    /*加载所有用户账号信息*/
+    function loadUsers() {
+        $.ajax({
+            url:"admin/loadUsers.do",
+            method:"get",
+            dataType:"json",
+            success:function (data) {
+                var html = '<tr>\n' +
+                    '<Td><input type="checkbox" id="userAll" onclick="userSelectAll()"></Td>\n'+
+                    '<TD>账号</TD>\n' +
+                    '<td>用户名</td>\n' +
+                    '<td>身份</td>\n' +
+                    '</tr>';
+                $.each(data,function (i,n) {
+                   html+='<tr>';
+                   html+='<Td><input type="checkbox" value="'+n.usercode+'" name="userSelect"></Td>'
+                   html+='<TD>'+n.usercode+'</TD>';
+                   html+='<td>'+n.name+'</td>';
+                   if(n.role=="0")
+                       html+='<td>用户</td>';
+                   else if(n.role=="1")
+                       html+='<td>商家</td>';
+                   else
+                       html+='<td>管理员</td>';
+                   html+='</tr>';
+                })
+                $("#userCodeContent").html(html);
+                $("#userCodes-modal").modal("show");
+            }
+        })
+
+    }
+    /*加载所有商家套餐信息*/
+    function loadSets() {
+        $.ajax({
+            url:"admin/loadSets.do",
+            method:"get",
+            dataType:"json",
+            success:function (data) {
+                var html='<tr>\n' +
+                    '<Td><input type="checkbox" id="setAll" onclick="setSelectAll()"></Td>\n'+
+                    '<Td>所属商家</Td>\n' +
+                    '<td>套餐名称</td>\n' +
+                    '<td>套餐价格</td>\n' +
+                    '</tr>'
+                $.each(data,function (i,n) {
+                    html+='<tr>\n';
+                    html+='<Td><input type="checkbox" value="'+n.id+'" name="setSelect"></Td>';
+                    html+='<Td>'+n.ownerId+'</Td>\n';
+                    html+='<td>'+n.setInclude+'</td>\n';
+                    html+='<td>'+n.price+'</td>\n';
+                    html+='</tr>';
+                })
+                $("#ticketSetContent").html(html);
+                $("#ticketSets-modal").modal("show");
+            }
+        })
+
+    }
+    /*套餐复选框全选*/
+    function setSelectAll() {
+       $("input[name=setSelect]").prop("checked",$("#setAll")[0].checked)
+    }
+    /*任意套餐取消打勾后，套餐全选框取消打勾*/
+    function cancelSetSelectAll() {
+        $("#setAll").prop("checked",$("input[name=setSelect]").length==$("input[name=setSelect]:checked").length);
+    }
+    /*用户复选框全选*/
+    function userSelectAll() {
+        $("input[name=userSelect]").prop("checked",$("#userAll")[0].checked)
+    }
+    /*任意用户取消打勾后，用户全选框取消打勾*/
+    function cancelUserSelectAll() {
+        $("#userAll").prop("checked",$("input[name=userSelect]").length==$("input[name=userSelect]:checked").length);
+    }
+    /*编辑用户信息*/
+    function editUserInfo() {
+        var select = $("input[name=userSelect]:checked");
+        if(select.length>1||select.length==0) alert("请选择一项进行编辑")
+        else{
+            var id = select.val();
+            /*保存该用户ID，为接下来上传修改做准备*/
+            $("#userCode").val(id);
+            $.ajax({
+                url:"admin/getUser.do",
+                method:"post",
+                dataType:"json",
+                data:{
+                    "id":id
+                },
+                success:function (data) {
+                    $("#userName").val(data.name);
+                    $("#editUser-modal").modal("show");
+                }
+            })
+        }
+    }
+    /*编辑套餐信息*/
+    function editSetInfo() {
+        var select = $("input[name=setSelect]:checked");
+        if(select.length>1||select.length==0) alert("请选择一项进行编辑")
+        else{
+            var id = select.val();
+            /*保存该套餐ID，为接下来上传修改做准备*/
+            $("#setId").val(id);
+            $.ajax({
+                url:"admin/getSet.do",
+                method:"post",
+                dataType:"json",
+                data:{
+                    "id":id
+                },
+                success:function (data) {
+                    $("#setInclude").val(data.setInclude);
+                    $("#setPrice").val(data.price);
+                    $("#editSet-modal").modal("show");
+                }
+            })
+        }
+    }
+    /*删除用户*/
+    function deleteUser() {
+        var select = $("input[name=userSelect]:checked");
+        var length=select.length;
+        if(length==0) alert("请选择一项或多项进行删除")
+        else if(confirm("确定要删除这"+length+"项吗？")){
+            var html="";
+            for(i=0;i<length;i++){
+                html+="usercode="+$(select[i]).val();
+                if(i<length-1) html+="&"
+            }
+            $.ajax({
+                url:"admin/deleteUser.do",
+                method:"post",
+                dataType:"text",
+                data:html,
+                success:function (data) {
+                    if(data=="true"){
+                        alert("删除成功");
+                        loadUsers();
+                    }else alert("删除失败，未知原因")
+                }
+            })
+        }
+    }
+    /*删除套餐*/
+    function deleteSet() {
+        var select = $("input[name=setSelect]:checked");
+        var length = select.length;
+        if(length==0) alert("请选择一项或多项进行删除")
+        else if(confirm("确定要删除这"+length+"项吗？")){
+            var html="";
+            for(i=0;i<length;i++){
+                html+="id="+$(select[i]).val();
+                if(i<length-1) html+="&"
+            }
+            $.ajax({
+                url:"admin/deleteSet.do",
+                method:"post",
+                dataType:"text",
+                data:html,
+                success:function (data) {
+                    if(data=="true"){
+                        alert("删除成功");
+                        loadSets();
+                    }else alert("删除失败，未知原因")
+                }
+            })
+        }
+        }
+
+    /*提交用户信息更改*/
+    function updateUserInfo() {
+        if($("#userName").val()=="")
+            $("#editUser-msg").html("用户名不得为空")
+        else{
+            var userName = $("#userName").val();
+            var userCode = $("#userCode").val();
+            $.ajax({
+                url:"admin/updateUser.do",
+                method:"post",
+                dataType:"text",
+                data: {
+                    "userCode":userCode,
+                    "userName":userName
+                },
+                success:function (data) {
+                    if(data=="true"){
+                        alert("修改成功");
+                        loadUsers();
+                        $("#editUser-modal").modal("hide");
+                    }else alert("修改失败，未知原因")
+                }
+            })
+        }
+    }
+    /*提交商家套餐信息更改*/
+    function updateSet() {
+        if($("#setInclude").val()==""||$("#setPrice").val()=="")
+            $("#editSet-msg").html("套餐内容与价格不得为空")
+        else{
+            var setInclude = $("#setInclude").val();
+            var setPrice = $("#setPrice").val();
+            var setId = $("#setId").val();
+            $.ajax({
+                url:"admin/updateSet.do",
+                method:"post",
+                dataType:"text",
+                data: {
+                    "setInclude":setInclude,
+                    "setPrice":setPrice,
+                    "setId":setId
+                },
+                success:function (data) {
+                    if(data=="true"){
+                        alert("修改成功");
+                        loadSets();
+                        $("#editSet-modal").modal("hide");
+                    }else alert("修改失败，未知原因")
+                }
+            })
+        }
+    }
+</script>
+<!--商家信息菜单-->
+<div id="user-data" style="position: absolute;right: 0px;top:0px;">
+    <input type="hidden" id="userCode">
+    <input type="hidden" id="setId">
+    <ul>
+        <li id="menu">
+            当前用户：${user.name}
+            <ul id="submenu">
+                <li><a onclick="loadUsers()">账号管理</a></li>
+                <li><a onclick="loadSets()">商家套餐</a></li>
+                <li><a href="#">退出登陆</a></li>
+            </ul>
+        </li>
+    </ul>
+</div>
+<!--账号管理的模态窗口-->
+<div class="modal fade" id="userCodes-modal" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 40%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title">账号管理</h4>
+            </div>
+            <div class="modal-body">
+                <button class="btn" onclick="editUserInfo()">编辑</button> <button class="btn" onclick="deleteUser()">删除</button>
+                <table id="userCodeContent" style="width: 80%" onclick="cancelUserSelectAll()">
+                    <tr>
+                        <TD>账号</TD>
+                        <td>用户名</td>
+                        <td>身份</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button data-dismiss="modal" class="btn">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--商家套餐管理的模态窗口-->
+<div class="modal fade" id="ticketSets-modal" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 40%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title">商家套餐管理</h4>
+            </div>
+            <div class="modal-body">
+                <button class="btn" onclick="editSetInfo()">编辑</button> <button class="btn" onclick="deleteSet()">删除</button>
+                <table id="ticketSetContent" style="width: 80%" onclick="cancelSetSelectAll()">
+                    <tr>
+                        <Td>所属商家</Td>
+                        <td>套餐名称</td>
+                        <td>套餐价格</td>
+                    </tr>
+                </table>
+            </div>
+            <div class="modal-footer">
+                <button data-dismiss="modal" class="btn">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--修改用户信息的模态窗口-->
+<div class="modal fade" id="editUser-modal" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 40%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title">修改用户信息</h4>
+            </div>
+            <div class="modal-body">
+                用户名：<input type="text" id="userName">
+                <font color="red" id="editUser-msg"></font>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="updateUserInfo()">保存</button>
+                <button data-dismiss="modal" class="btn">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!--修改套餐内容的模态窗口-->
+<div class="modal fade" id="editSet-modal" role="dialog">
+    <div class="modal-dialog" role="document" style="width: 40%;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal">
+                    <span aria-hidden="true">×</span>
+                </button>
+                <h4 class="modal-title">修改套餐内容</h4>
+            </div>
+            <div class="modal-body">
+                <table style="width: 80%">
+                    <tr>
+                        <td>套餐内容</td>
+                        <td><input type="text" id="setInclude"></td>
+                    </tr>
+                    <tr>
+                        <td>套餐价格</td>
+                        <td><input type="text" id="setPrice"></td>
+                    </tr>
+                </table>
+                <font color="red" id="editSet-msg"></font>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="updateSet()">保存</button>
+                <button data-dismiss="modal" class="btn">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
